@@ -13,6 +13,12 @@ You can find the source code for Minima at GitHub:
 You can find the source code for Jekyll at GitHub:
 [jekyll][jekyll-organization] /
 [jekyll](https://github.com/jekyll/jekyll)
-
-
 [jekyll-organization]: https://github.com/jekyll
+
+
+
+$$
+  \int_{-\infty}^{\infty}f(x)\delta(x)dx = f(0). \tag{2}
+$$
+
+text
