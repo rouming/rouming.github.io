@@ -1,4 +1,6 @@
-# Alternative Approaches to RedPitaya Bode Analyser
+---
+title:  Alternative Approaches to RedPitaya Bode Analyser
+---
 
 This article explores two alternative approaches to improving the [Bode Analyser](https://redpitaya.readthedocs.io/en/latest/appsFeatures/applications/bode/bode.html),
 a web tool included in the default suite of RedPitaya applications.
