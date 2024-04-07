@@ -1,12 +1,14 @@
-![](/images/errors-in-the-datasheet-or-exercises-in-trigonometry/datasheet-photo.png)
-
 I came across an interesting approach to solving the problem of doubling the frequency in circuitry: use an analog multiplier. Indeed, if the incoming signal is a sine wave, then what could be simpler than multiplying the incoming signal by itself, i.e. squaring of the sine wave, so that at the output we will get a double frequency signal:
 
 $$
 \sin(x) \cdot \sin(x) = \frac{1}{2} [1 - \cos(2x)]
 $$
 
-However, looking into the details of the proposed solution in the [datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/ad633.pdf) for the AD633 device, one can stumble upon unpleasant mistakes in calculations. But first things first.
+However, looking into the details of the proposed solution in the [datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/ad633.pdf) for the AD633 device, one can stumble upon unpleasant mistakes in calculations:
+
+![](/images/errors-in-the-datasheet-or-exercises-in-trigonometry/datasheet-photo.png)
+
+But first things first.
 
 ## What kind of beast is the analog multiplier?
 
