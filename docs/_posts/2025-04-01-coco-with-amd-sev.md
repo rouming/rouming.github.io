@@ -1191,6 +1191,31 @@ measurement (see details in the previous [section](#measurement)),
 `base64` encoding, and `--auth-file` specifies the path to a file for
 the authorization block output in `base64` encoding.
 
+When using QEMU options `-kernel`, `-append`, and `-initrd`, OVMF must
+be built as AmdSevX64 (see the "Guest `OVMF` Firmware"
+[section](#guest-ovmf-firmware)). This is necessary because the OVMF
+binary must include `SNP_KERNEL_HASHES`, which is achieved by the
+AmdSevX64 build.
+
+For the kernel and initrd case, the ID and AUTH blocks can be
+generated, for example, as follows:
+
+```bash
+snpguest --quiet generate id-block id-block-key.pem id-auth-key.pem \
+     $(snpguest generate measurement \
+         --ovmf AmdSev-OVMF.fd \
+         --kernel vmlinuz-6.8.0-55-generic \
+         --append "root=UUID=a191e346-9ec3-4394-b034-b1545dbf4eaf ro console=tty1 console=ttyS0" \
+         --initrd initrd.img-6.8.0-55-generic \
+         --vcpus 4
+         --vcpu-type EPYC) \
+     --id-file id-block.base64 \
+     --auth-file id-auth.base64
+```
+
+and `-object sev-snp-guest` object must include `kernel-hashes=on`,
+which is described in the next section.
+
 ### Run QEMU
 
 The QEMU documentation [6] provides information about the necessary
@@ -1202,6 +1227,21 @@ sev-snp-guest,...` command line with the following arguments:
 ```
 
 If measurements are done correctly, QEMU should start successfully!
+
+Be aware! When QEMU is executed with the `-kernel`, `-append`, and
+`-initrd` options, the AmdSevX64 OVMF build should be provided, and
+`kernel-hashes=on` should be set for the `-object sev-snp-guest`
+object.
+
+If `kernel-hashes=on` is not set, AmdSevX64 OVMF rejects booting the
+specified kernel, and measurements won't match when an ID block is
+used.
+
+The command line should appear as follows:
+
+```bash
+-object sev-snp-guest,kernel-hashes=on,id-block=$(cat id-block.base64),id-auth=$(cat id-auth.base64),author-key-enabled=true,...
+```
 
 ### Verification
 
