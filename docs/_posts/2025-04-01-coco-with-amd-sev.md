@@ -1251,6 +1251,110 @@ If the digests match, it means the Auth block is tied to the same
 platform as the ID block, confirming it's authorized for that specific
 hardware, so the guest owner can trust the attestation measurement.
 
+## AMD-SNP Attestation Procedure
+
+The following sequence ensures that the guest boots into a **genuine,
+untampered environment**, validated at runtime using AMD-SNP
+hardware-based attestation.
+
+### 1. Customer Provides
+
+- OVMF binary
+- Kernel
+- Initrd
+- ID-block blob
+- Auth-block blob
+- Encrypted disk image with customer secrets
+
+### 2. Launch VM with QEMU
+
+QEMU is started with the ID-block (which includes checksums of the
+OVMF, kernel, and initrd) and the Auth-block provided by the customer.
+(see details in the "Launch Guest With ID-Block and Auth-Block"
+[section](#launch-guest-with-id-block-and-auth-block))
+
+- The CPU halts execution if the digest in the ID-block does not match
+  the actual binary checksums.
+- The ID-block and Auth-block are embedded into the attestation
+  report.
+
+> Note: The kernel, initrd, ID-block, and Auth-block may be tampered
+> with by the cloud provider in a way that still allows the VM to
+> boot. The further described attestation mechanism ensures that such
+> tampering is detectable.
+
+### 3. Run Attestation Application from Initrd
+
+Once the guest boots into the initrd (either genuine or tampered), the
+initrd should invoke an **attestation application** during the final
+stage of the boot process. This application must be part of the
+checksummed initrd image.
+
+### 4. Connect to Customer Attestation Service
+
+The attestation application:
+
+- Establishes a **TLS connection** with the customer's attestation
+  service (running in a trusted cloud environment)
+- Receives a **random NONCE** from the attestation service
+
+### 5. Generate AMD-SNP Attestation Report
+
+The attestation application performs AMD-SNP attestation, providing
+the received NONCE. It requests an attestation report which:
+
+- Is signed by AMD
+- Contains checksums of the OVMF, kernel, and initrd
+- Includes the ID-block and Auth-block originally provided by the customer
+- Includes the random NONCE received from the attestation service
+
+> If any of the supplied binaries (OVMF, kernel, initrd, ID-block,
+> Auth-block) were tampered with, the attestation report will reflect
+> that.
+
+> Importantly, even if the data is tampered with, the report itself is
+> still signed with AMD's hardware key, proving its origin from a
+> genuine AMD platform.
+
+### 6. Send Report to Attestation Service
+
+The attestation application sends the report to the customer's
+attestation service, which verifies:
+
+- The AMD signature on the report
+- The Auth-block digest (must match the customer's Auth key, known to the attestation service)
+- The ID-block digest (must match the customer's ID key, known to the attestation service)
+- The checksums of the OVMF, kernel, and initrd
+- The NONCE (must match the one previously issued)
+
+If any of these checks fail, the attestation service closes the connection.
+If all checks pass, the attestation service returns the **DISK-SECRET**.
+
+Q: Why Does NONCE Matter?
+A: The NONCE ensures the attestation report was generated **in
+response to this specific request**, preventing reuse of older reports
+(replay attacks).
+
+Q: What is the role of the Auth-block and ID-block key digests?
+A: Auth-block and ID-block keys are known only to the guest owner and
+the application service. A genuine attestation report that includes
+digests of these keys proves that a VM was originated by this guest
+owner and belongs to them. An attestation report generated inside
+another guest (or from tampered images) won't contain the ID-block
+previously provided by a customer, resulting in a mismatched ID-block
+key digest. The correct ID-block and Auth-block digests authenticate
+the connection between the attestation application and the attestation
+service.
+
+### 7. Unseal the Disk and Continue Booting
+
+Once the attestation application receives the DISK-SECRET:
+
+- It uses the secret to unseal the encrypted disk
+- The boot process continues into the fully provisioned system
+
+---
+
 # References
 
 [1] https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/24593.pdf \
