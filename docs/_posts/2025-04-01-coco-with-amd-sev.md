@@ -58,20 +58,20 @@ later.
    settings can be found in the Processor Settings section. Make sure
    the following options are properly set up:
 
-```
+ ```
    Secure Memory Encryption             = Enabled
    Minimum SEV non-ES ASID              = 509
    Secure Nested Paging                 = Enabled
    SNP Memory Coverage                  = Enabled
    Transparent Secure Memory Encryption = Disabled (default)
-```
+ ```
 
 2. Ensure UEFI is enabled, otherwise SEV-SNP won't work and the
    following error may appear in the dmesg:
 
-```
+ ```
    SEV-SNP: failed to INIT rc -5, error 0x3
-```
+ ```
 
 ## Host Kernel
 
@@ -87,38 +87,56 @@ later.
    passthrough mode (`pt`) is insufficient. If not set up correctly,
    you'll encounter this error in dmesg:
 
-```
+ ```
    AMD-Vi: SNP: IOMMU disabled or configured in passthrough mode, SNP cannot be supported.
-```
+ ```
 
    IOMMU is enabled by default, so you don't need to add any options
    to the cmdline. Just ensure that `iommu=pt` is not present.
 
-## Guest `OVMF` Firmware
+## Guest **OVMF** Firmware
 
 `OVMF` firmware should be built with AMD-SEV support enabled,
-specifically for the [Launch Secret](#Launch_Secret) feature. However,
-for `SEV-SNP`, no special OVMF build is required.
+specifically for the [Launch Secret](#launch-secret) feature. The
+`SEV-SNP` requires the OVMF binary to include `SNP_KERNEL_HASHES`,
+which is enabled by the same AmdSevX64 OVMF build.
 
-1. Touch the `grub.efi`:
+1. Pull latest stable:
 
-```bash
+ ```bash
+   git clone \
+     --branch edk2-stable202511 \
+     --single-branch \
+     --recurse-submodules \
+     https://github.com/tianocore/edk2.git
+  ```
+
+2. Build tools and apply envrionment:
+
+ ```bash
+   make -C BaseTools
+   source ./edksetup.sh
+```
+
+3. Touch the `grub.efi`:
+
+ ```bash
    touch OvmfPkg/AmdSev/Grub/grub.efi
-```
+ ```
 
-2. Build OVMF for the AMD-SEV platform:
+4. Build OVMF for the AMD-SEV platform:
 
-```bash
+ ```bash
    build -p OvmfPkg/AmdSev/AmdSevX64.dsc -b RELEASE -a X64 -t GCC5
-```
+ ```
 
-3. Resulting binary `./Build/AmdSev/RELEASE_GCC5/FV/OVMF.fd` will be
+5. Resulting binary `./Build/AmdSev/RELEASE_GCC5/FV/OVMF.fd` will be
    used by the QEMU and should be shared with the platform owner.
 
 ## Guest Kernel
 
 Ensure the guest kernel is configured with the `EFI_SECRET` option
-enabled for the [Launch Secret](#Launch_Secret) feature. The latest
+enabled for the [Launch Secret](#launch-secret) feature. The latest
 Ubuntu Nobble 24.04 includes the `efi_secret` module, but you need to
 install an additional modules package. For example:
 
@@ -161,7 +179,7 @@ For AMD SEV-SNP technology:
 This section covers SEV and SEV-ES configuration, tools, and
 API. The SEV-SNP description is presented next.
 
-## Building `sevctl`
+## Building **sevctl**
 
 The primary tool for managing SEV platform and guests is the `sevctl`.
 First of all let's build `sevctl`:
@@ -800,7 +818,7 @@ attestation request to a different, trusted VM to fake a valid
 response, with the fake VM being fully controlled by the malicious
 hypervisor). I have not found any clear defense against it.
 
-## Building `snphost` and `snpguest`
+## Building **snphost** and **snpguest**
 
 The main tool for managing the SEV-SNP platform is `snphost`. For
 attestation and measurements, there is a `snpguest` tool, which should
@@ -1242,6 +1260,8 @@ The command line should appear as follows:
 ```bash
 -object sev-snp-guest,kernel-hashes=on,id-block=$(cat id-block.base64),id-auth=$(cat id-auth.base64),author-key-enabled=true,...
 ```
+
+To provide opaque host-supplied data of 32 bytes, which will be included in the attestation report, the `host-data=<base64>` should be specified.
 
 ### Verification
 
